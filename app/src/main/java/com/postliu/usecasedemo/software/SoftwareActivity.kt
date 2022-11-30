@@ -2,14 +2,18 @@ package com.postliu.usecasedemo.software
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.FrameLayout
 import androidx.activity.viewModels
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
 import com.postliu.usecasedemo.base.BaseBindingActivity
 import com.postliu.usecasedemo.data.Result
 import com.postliu.usecasedemo.databinding.ActivitySoftwareBinding
+import com.postliu.usecasedemo.util.launchByPackageName
+import com.postliu.usecasedemo.util.showSnackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collectLatest
@@ -31,7 +35,16 @@ class SoftwareActivity : BaseBindingActivity<ActivitySoftwareBinding>() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         with(binding) {
-            recyclerview.adapter = softwareAdapter
+            root.updateLayoutParams<FrameLayout.LayoutParams> {
+                bottomMargin = 12
+            }
+            recyclerview.adapter = softwareAdapter.apply {
+                setOnItemClickListener { data, _ ->
+                    launchByPackageName(data.packageName).onFailure {
+                        root.showSnackbar(it.stackTraceToString())
+                    }
+                }
+            }
             inputName.addTextChangedListener {
                 val name = it?.toString().orEmpty()
                 viewModel.dispatch(SoftwareAction.FuzzySearch(name, true))

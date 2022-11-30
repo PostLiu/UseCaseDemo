@@ -9,8 +9,12 @@ import com.postliu.usecasedemo.databinding.ItemSoftwareInfoLayoutBinding
 import com.postliu.usecasedemo.util.SoftwareUtils
 import javax.inject.Inject
 
+typealias OnItemClickListener<T> = (data: T, position: Int) -> Unit
+
 class SoftwareAdapter @Inject constructor() :
     ListAdapter<Software, BindingViewHolder<ItemSoftwareInfoLayoutBinding>>(SoftwareDiffCallback()) {
+
+    private var onItemClickListener: OnItemClickListener<Software> = { _, _ -> }
 
     override fun onCreateViewHolder(
         parent: ViewGroup,
@@ -24,12 +28,19 @@ class SoftwareAdapter @Inject constructor() :
         position: Int
     ) {
         val data = getItem(position)
+        holder.itemView.setOnClickListener {
+            onItemClickListener(data, position)
+        }
         with(holder.binding) {
             val icon = SoftwareUtils.getPackageIcon(root.context, data.packageName)
             itemIcon.setImageDrawable(icon)
             itemLabel.text = data.labelName
             itemVersionName.text = data.versionName
         }
+    }
+
+    fun setOnItemClickListener(onItemClickListener: OnItemClickListener<Software>) {
+        this.onItemClickListener = onItemClickListener
     }
 }
 

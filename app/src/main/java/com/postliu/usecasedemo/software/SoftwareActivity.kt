@@ -8,6 +8,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.postliu.usecasedemo.base.BaseBindingActivity
+import com.postliu.usecasedemo.data.Result.Companion.map
 import com.postliu.usecasedemo.data.Result.Companion.onError
 import com.postliu.usecasedemo.data.Result.Companion.onLoading
 import com.postliu.usecasedemo.data.Result.Companion.onSuccess
@@ -79,14 +80,7 @@ class SoftwareActivity : BaseBindingActivity<ActivitySoftwareBinding>() {
     override fun CoroutineScope.uiReceived() {
         launch {
             viewModel.softwares.collectLatest { result ->
-                result.onLoading {
-                    binding.refresh.isRefreshing = true
-                }.onError {
-                    binding.refresh.isRefreshing = false
-                    binding.root.showSnackbar("失败：${it.message}")
-                }.onSuccess { softwares ->
-                    binding.refresh.isRefreshing = false
-                    binding.root.showSnackbar("成功：总共加载${softwares.size}条数据")
+                result.map { softwares ->
                     softwares.map {
                         it.copy(
                             icon = SoftwareUtils.getPackageIcon(
@@ -94,10 +88,17 @@ class SoftwareActivity : BaseBindingActivity<ActivitySoftwareBinding>() {
                                 it.packageName
                             )
                         )
-                    }.toList().run {
-                        Log.e(TAG, "uiReceived: $this")
-                        softwareAdapter.submitList(this)
                     }
+                }.onLoading {
+                    binding.refresh.isRefreshing = true
+                }.onError {
+                    binding.refresh.isRefreshing = false
+                    binding.root.showSnackbar("失败：${it.message}")
+                }.onSuccess { softwares ->
+                    binding.refresh.isRefreshing = false
+                    binding.root.showSnackbar("成功：总共加载${softwares.size}条数据")
+                    Log.e(TAG, "uiReceived: $softwares")
+                    softwareAdapter.submitList(softwares)
                 }
             }
         }

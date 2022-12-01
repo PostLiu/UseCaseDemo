@@ -32,6 +32,14 @@ sealed class Result<out R> {
             if (this is Success) action(data)
             return this
         }
+
+        inline fun <R, T> Result<R>.map(action: (R) -> T): Result<T> {
+            return when (this) {
+                is Loading -> Loading
+                is Error -> Error(throwable)
+                is Success -> Success(action(data))
+            }
+        }
     }
 }
 

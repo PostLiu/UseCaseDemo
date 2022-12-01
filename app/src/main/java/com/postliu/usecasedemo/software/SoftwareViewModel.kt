@@ -28,6 +28,8 @@ sealed class SoftwareAction {
         val labelName: String,
         val filterSystem: Boolean = true
     ) : SoftwareAction()
+
+    object Clear : SoftwareAction()
 }
 
 @HiltViewModel
@@ -42,19 +44,25 @@ class SoftwareViewModel @Inject constructor(
         private const val TAG = "SoftwareViewModel"
     }
 
+    private val allSoftware by lazy { SoftwareUtils.getInstalledPackages(application) }
+
     private val mSoftwares = MutableStateFlow<Result<List<Software>>>(Result.Loading)
     val softwares = mSoftwares.asStateFlow()
 
     fun dispatch(action: SoftwareAction) = when (action) {
         is SoftwareAction.Fetch -> allSoftware()
         is SoftwareAction.Refresh -> allSoftware()
-        is SoftwareAction.FuzzySearch -> fuzzySearch(action.labelName)
+        is SoftwareAction.FuzzySearch -> fuzzySearch(action.labelName, action.filterSystem)
+        is SoftwareAction.Clear -> clearSoftwareFromDatabase()
+    }
+
+    private fun clearSoftwareFromDatabase() = viewModelScope.launch {
+        clearSoftwareUseCase()
     }
 
     private fun allSoftware(filterSystem: Boolean = true) = viewModelScope.launch {
         flow {
-            clearSoftwareUseCase()
-            val allSoftware = SoftwareUtils.getInstalledPackages(getApplication())
+//            clearSoftwareUseCase()
             Log.e(TAG, "allSoftware: $allSoftware")
             saveSoftwareUseCase(allSoftware)
             emit(getSoftwaresUseCase(filterSystem))
@@ -66,9 +74,12 @@ class SoftwareViewModel @Inject constructor(
     }
 
     @OptIn(FlowPreview::class)
-    private fun fuzzySearch(labelName: String,filterSystem: Boolean = true) = viewModelScope.launch {
+    private fun fuzzySearch(
+        labelName: String,
+        filterSystem: Boolean = true
+    ) = viewModelScope.launch {
         flow {
-            emit(getSoftwaresUseCase(labelName,filterSystem))
+            emit(getSoftwaresUseCase(labelName, filterSystem))
         }.debounce(500).catch {
             mSoftwares.emit(Result.Error(it))
         }.collectLatest {

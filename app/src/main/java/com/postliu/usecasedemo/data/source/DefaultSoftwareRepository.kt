@@ -6,9 +6,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 
-class DefaultSoftwareRepository @Inject constructor(
+class DefaultSoftwareRepository(
     private val dataSource: SoftwareDataSource,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : SoftwareRepository {

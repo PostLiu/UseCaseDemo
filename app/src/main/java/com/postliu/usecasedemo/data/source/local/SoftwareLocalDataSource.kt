@@ -14,6 +14,7 @@ class SoftwareLocalDataSource internal constructor(
 ) : SoftwareDataSource {
 
     override suspend fun saveSoftwares(software: List<Software>) = withContext(ioDispatcher) {
+        softwareDao.clearSoftwares()
         softwareDao.saveSoftwares(software)
     }
 

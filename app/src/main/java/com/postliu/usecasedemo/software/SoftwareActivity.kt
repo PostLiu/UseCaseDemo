@@ -2,18 +2,19 @@ package com.postliu.usecasedemo.software
 
 import android.os.Bundle
 import android.util.Log
-import android.widget.FrameLayout
 import androidx.activity.viewModels
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
 import androidx.core.widget.addTextChangedListener
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.postliu.usecasedemo.base.BaseBindingActivity
 import com.postliu.usecasedemo.data.Result
 import com.postliu.usecasedemo.databinding.ActivitySoftwareBinding
+import com.postliu.usecasedemo.dialog.UnInstallSoftwareDialog
+import com.postliu.usecasedemo.util.SoftwareUtils
 import com.postliu.usecasedemo.util.launchByPackageName
 import com.postliu.usecasedemo.util.showSnackbar
+import com.postliu.usecasedemo.util.uninstallSoftware
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collectLatest
@@ -35,35 +36,44 @@ class SoftwareActivity : BaseBindingActivity<ActivitySoftwareBinding>() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         with(binding) {
-            root.updateLayoutParams<FrameLayout.LayoutParams> {
-                bottomMargin = 12
-            }
             recyclerview.adapter = softwareAdapter.apply {
                 setOnItemClickListener { data, _ ->
                     launchByPackageName(data.packageName).onFailure {
+                        Log.e(TAG, "onCreate: $it")
                         root.showSnackbar(it.stackTraceToString())
                     }
+                }
+                setOnItemLongClickListener { data, _ ->
+                    val icon = SoftwareUtils.getPackageIcon(this@SoftwareActivity, data.packageName)
+                    UnInstallSoftwareDialog.build(this@SoftwareActivity)
+                        .setLogo(icon)
+                        .setMessage("是否允许卸载【${data.labelName}】")
+                        .setCancelClickListener { dismiss() }
+                        .setSureClickListener {
+                            uninstallSoftware(data.packageName)
+                                .onFailure { root.showSnackbar(it.stackTraceToString()) }
+                                .onSuccess { dismiss() }
+                        }.show()
+                    return@setOnItemLongClickListener true
                 }
             }
             inputName.addTextChangedListener {
                 val name = it?.toString().orEmpty()
-                viewModel.dispatch(SoftwareAction.FuzzySearch(name, true))
+                viewModel.dispatch(SoftwareAction.FuzzySearch(name, false))
             }
             refresh.setOnRefreshListener {
-                viewModel.dispatch(SoftwareAction.Refresh)
-            }
-            ViewCompat.setOnApplyWindowInsetsListener(
-                inputName
-            ) { _, insets ->
-                val isVisibility = insets.isVisible(WindowInsetsCompat.Type.ime())
-                if (!isVisibility) {
-                    inputName.clearFocus()
+                if (inputName.text.isNullOrEmpty()) {
+                    viewModel.dispatch(SoftwareAction.Refresh)
+                } else {
+                    val name = inputName.text.toString()
+                    viewModel.dispatch(SoftwareAction.FuzzySearch(name, false))
                 }
-                insets
             }
         }
         lifecycleScope.launchWhenStarted {
-            viewModel.dispatch(SoftwareAction.Fetch)
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.dispatch(SoftwareAction.Fetch)
+            }
         }
     }
 
@@ -88,5 +98,10 @@ class SoftwareActivity : BaseBindingActivity<ActivitySoftwareBinding>() {
                 }
             }
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        viewModel.dispatch(SoftwareAction.Clear)
     }
 }

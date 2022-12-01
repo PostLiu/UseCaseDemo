@@ -4,12 +4,11 @@ import android.graphics.drawable.Drawable
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
-import java.util.UUID
 
 @Entity(tableName = "software")
 data class Software(
-    @PrimaryKey
-    var uid: String = UUID.randomUUID().toString(),
+    @PrimaryKey(autoGenerate = true)
+    var uid: Int = 0,
     @Ignore
     var icon: Drawable? = null,
     var labelName: String,
@@ -18,5 +17,5 @@ data class Software(
     var versionCode: String,
     var systemFrom: Boolean,
 ) {
-    constructor() : this("", null, "", "", "", "", false)
+    constructor() : this(0, null, "", "", "", "", false)
 }

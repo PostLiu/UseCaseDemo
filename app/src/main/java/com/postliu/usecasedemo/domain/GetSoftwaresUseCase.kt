@@ -12,10 +12,21 @@ class GetSoftwaresUseCase @Inject constructor(
         return repository.getSoftwares(filterSystem)
     }
 
+    /**
+     * 条件筛选查询
+     *
+     * @param labelName 搜索的名称
+     * @param filterSystem 是否过滤系统应用
+     * @return
+     */
     suspend operator fun invoke(
         labelName: String,
         filterSystem: Boolean = false
     ): Result<List<Software>> {
-        return repository.getSoftwareByName(labelName, filterSystem)
+        return if (labelName.isEmpty()) {
+            repository.getSoftwares(filterSystem)
+        } else {
+            repository.getSoftwareByName(labelName, filterSystem)
+        }
     }
 }

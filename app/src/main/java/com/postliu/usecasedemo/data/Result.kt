@@ -15,6 +15,24 @@ sealed class Result<out R> {
             is Success<*> -> "Success[data=$data]"
         }
     }
+
+    companion object {
+
+        inline fun <R> Result<R>.onLoading(action: () -> Unit): Result<R> {
+            if (this is Loading) action()
+            return this
+        }
+
+        inline fun <R> Result<R>.onError(action: (Throwable) -> Unit): Result<R> {
+            if (this is Error) action(throwable)
+            return this
+        }
+
+        inline fun <R> Result<R>.onSuccess(action: (R) -> Unit): Result<R> {
+            if (this is Success) action(data)
+            return this
+        }
+    }
 }
 
 val Result<*>.succeeded

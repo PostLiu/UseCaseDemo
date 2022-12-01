@@ -1,7 +1,6 @@
 package com.postliu.usecasedemo.software
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.postliu.usecasedemo.data.Result
@@ -44,8 +43,6 @@ class SoftwareViewModel @Inject constructor(
         private const val TAG = "SoftwareViewModel"
     }
 
-    private val allSoftware by lazy { SoftwareUtils.getInstalledPackages(application) }
-
     private val mSoftwares = MutableStateFlow<Result<List<Software>>>(Result.Loading)
     val softwares = mSoftwares.asStateFlow()
 
@@ -62,8 +59,7 @@ class SoftwareViewModel @Inject constructor(
 
     private fun allSoftware(filterSystem: Boolean = true) = viewModelScope.launch {
         flow {
-//            clearSoftwareUseCase()
-            Log.e(TAG, "allSoftware: $allSoftware")
+            val allSoftware = SoftwareUtils.getInstalledPackages(getApplication())
             saveSoftwareUseCase(allSoftware)
             emit(getSoftwaresUseCase(filterSystem))
         }.catch {

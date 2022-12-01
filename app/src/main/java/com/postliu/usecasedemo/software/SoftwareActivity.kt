@@ -8,7 +8,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.postliu.usecasedemo.base.BaseBindingActivity
-import com.postliu.usecasedemo.data.Result
+import com.postliu.usecasedemo.data.Result.Companion.onError
+import com.postliu.usecasedemo.data.Result.Companion.onLoading
+import com.postliu.usecasedemo.data.Result.Companion.onSuccess
 import com.postliu.usecasedemo.databinding.ActivitySoftwareBinding
 import com.postliu.usecasedemo.dialog.UnInstallSoftwareDialog
 import com.postliu.usecasedemo.util.SoftwareUtils
@@ -45,13 +47,10 @@ class SoftwareActivity : BaseBindingActivity<ActivitySoftwareBinding>() {
                 }
                 setOnItemLongClickListener { data, _ ->
                     val icon = SoftwareUtils.getPackageIcon(this@SoftwareActivity, data.packageName)
-                    UnInstallSoftwareDialog.build(this@SoftwareActivity)
-                        .setLogo(icon)
+                    UnInstallSoftwareDialog.build(this@SoftwareActivity).setLogo(icon)
                         .setMessage("是否允许卸载【${data.labelName}】")
-                        .setCancelClickListener { dismiss() }
-                        .setSureClickListener {
-                            uninstallSoftware(data.packageName)
-                                .onFailure { root.showSnackbar(it.stackTraceToString()) }
+                        .setCancelClickListener { dismiss() }.setSureClickListener {
+                            uninstallSoftware(data.packageName).onFailure { root.showSnackbar(it.stackTraceToString()) }
                                 .onSuccess { dismiss() }
                         }.show()
                     return@setOnItemLongClickListener true
@@ -79,21 +78,25 @@ class SoftwareActivity : BaseBindingActivity<ActivitySoftwareBinding>() {
 
     override fun CoroutineScope.uiReceived() {
         launch {
-            viewModel.softwares.collectLatest {
-                Log.e(TAG, "uiReceived: $it")
-                when (it) {
-                    is Result.Loading -> {
-                        binding.refresh.isRefreshing = true
-                    }
-
-                    is Result.Error -> {
-                        binding.refresh.isRefreshing = false
-                    }
-
-                    is Result.Success -> {
-                        binding.refresh.isRefreshing = false
-                        Log.e(TAG, "uiReceived: size is ${it.data.size}")
-                        softwareAdapter.submitList(it.data)
+            viewModel.softwares.collectLatest { result ->
+                result.onLoading {
+                    binding.refresh.isRefreshing = true
+                }.onError {
+                    binding.refresh.isRefreshing = false
+                    binding.root.showSnackbar("失败：${it.message}")
+                }.onSuccess { softwares ->
+                    binding.refresh.isRefreshing = false
+                    binding.root.showSnackbar("成功：总共加载${softwares.size}条数据")
+                    softwares.map {
+                        it.copy(
+                            icon = SoftwareUtils.getPackageIcon(
+                                this@SoftwareActivity,
+                                it.packageName
+                            )
+                        )
+                    }.toList().run {
+                        Log.e(TAG, "uiReceived: $this")
+                        softwareAdapter.submitList(this)
                     }
                 }
             }

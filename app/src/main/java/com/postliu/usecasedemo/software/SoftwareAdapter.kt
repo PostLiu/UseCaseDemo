@@ -6,7 +6,6 @@ import androidx.recyclerview.widget.ListAdapter
 import com.dylanc.viewbinding.BindingViewHolder
 import com.postliu.usecasedemo.data.Software
 import com.postliu.usecasedemo.databinding.ItemSoftwareInfoLayoutBinding
-import com.postliu.usecasedemo.util.SoftwareUtils
 import javax.inject.Inject
 
 typealias OnItemClickListener<T> = (data: T, position: Int) -> Unit
@@ -38,8 +37,7 @@ class SoftwareAdapter @Inject constructor() :
             onItemLongClickListener(data, position)
         }
         with(holder.binding) {
-            val icon = SoftwareUtils.getPackageIcon(root.context, data.packageName)
-            itemIcon.setImageDrawable(icon)
+            itemIcon.setImageDrawable(data.icon)
             itemLabel.text = data.labelName
             itemVersionName.text = data.versionName
         }
